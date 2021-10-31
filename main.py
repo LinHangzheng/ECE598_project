@@ -1,6 +1,6 @@
 import numpy as np
 import gym
-from policy import random_policy
+from models.policy import random_policy
 from options import parse_options
 import logging as log
 

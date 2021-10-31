@@ -25,3 +25,7 @@ If you meet the error about missing patchelf module, try to install patchelf.
 ```
 conda install -c anaconda patchelf
 ```
+
+## Approachs
+
+In this project, the main method is Hindsight-experience-replay ([@HER](https://github.com/TianhongDai/hindsight-experience-replay)), a reinforcement learning algorithm that can learn from failure. 

@@ -4,11 +4,8 @@
 In this project, you are required to set up mujoco-py, a detailed tutorial is in [@openai](https://github.com/openai/mujoco-py#install-mujoco)
 
 ### Common problem during mujoco-py set up
-If you meet `command 'gcc' failed with exit status 1`  when runing the follwing code
-```
-gym.make(args.environment_name)
-```
-You need to install libosmesa6-dev
+If you meet `command 'gcc' failed with exit status 1`. 
+You need to install libosmesa6-dev.
 
 ```
 sudo apt-get install libosmesa6-dev

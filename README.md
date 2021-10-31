@@ -3,7 +3,7 @@
 ## Setup
 In this project, you are required to set up mujoco-py, a detailed tutorial is in [@openai](https://github.com/openai/mujoco-py#install-mujoco)
 
-### common problem during mujoco-py set up
+### Common problem during mujoco-py set up
 If you only has windows environment and cannot reach a linux/OXS system, you can try the following code.
 
 ```

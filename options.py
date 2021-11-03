@@ -10,8 +10,15 @@ def parse_options(return_parser=False):
     global_group = parser.add_argument_group('global')
     global_group.add_argument('--environment_name', type=str, default='FetchSlide-v1',
                               help='Experiment name.')
+    global_group.add_argument('--output_path', type=str, default='_result/',
+                              help='output path.')
+    global_group.add_argument('--model', type=str, default='PPO', choices=['PPO', 'HER'], 
+                             help='model to be used.')
+    global_group.add_argument('--epochs', type=int, default=500, 
+                             help='Number of epochs to run the training.')
     global_group.add_argument('--seed', type=int,
                               help='NumPy random seed.')
+
 
     # Parse and run
     if return_parser:

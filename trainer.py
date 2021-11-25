@@ -12,14 +12,14 @@ class Trainer(object):
         self.args = args 
         self.args_str = args_str
         
-        
         self.init_device()
+        self.init_seed()
         self.build_path()
         self.set_env()
         self.set_network()
 
     def init_device(self):
-        self.use_cuda = torch.cuda.is_available()
+        self.use_cuda = torch.cuda.is_available()   
         self.device = torch.device('cuda' if self.use_cuda else 'cpu')
         device_name = torch.cuda.get_device_name(device=self.device)
         log.info(f'Using {device_name} with CUDA v{torch.version.cuda}')
@@ -29,7 +29,7 @@ class Trainer(object):
         random.seed(self.args.seed)
         np.random.seed(self.args.seed)
         torch.manual_seed(self.args.seed)
-        
+
     def build_path(self):
         # create the output folder
         if not os.path.exists(self.args.output_path):

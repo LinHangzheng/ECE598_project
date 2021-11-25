@@ -3,6 +3,7 @@ import numpy as np
 import gym
 import os
 import logging as log
+import random
 from stable_baselines3 import PPO, HerReplayBuffer, DDPG
 from torch._C import device
 
@@ -23,6 +24,12 @@ class Trainer(object):
         device_name = torch.cuda.get_device_name(device=self.device)
         log.info(f'Using {device_name} with CUDA v{torch.version.cuda}')
 
+    def init_seed(self):
+         ## fix random seed
+        random.seed(self.args.seed)
+        np.random.seed(self.args.seed)
+        torch.manual_seed(self.args.seed)
+        
     def build_path(self):
         # create the output folder
         if not os.path.exists(self.args.output_path):

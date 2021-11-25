@@ -1,13 +1,6 @@
-import numpy as np
-import gym
-from models.policy import random_policy
 from options import parse_options
 import logging as log
-import torch
 from trainer import Trainer
-import os
-from stable_baselines3 import PPO
-
 # Set logger display format
 log.basicConfig(format='[%(asctime)s] [INFO] %(message)s', 
                 datefmt='%d/%m %H:%M:%S',
@@ -22,8 +15,9 @@ if __name__ == "__main__":
     trainer = Trainer(args, args_str)
     trainer.train()
     trainer.save_model()
-    trainer.render()
-
+    # trainer.render()
+    trainer.test()
+    
 
     # If we want, we can substitute a goal here and re-compute
     # the reward. For instance, we can just pretend that the desired

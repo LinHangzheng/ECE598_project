@@ -12,9 +12,9 @@ def parse_options(return_parser=False):
                               help='Experiment name.')
     global_group.add_argument('--output_path', type=str, default='_result/',
                               help='output path.')
-    global_group.add_argument('--model', type=str, default='PPO', choices=['PPO', 'HER'], 
+    global_group.add_argument('--model', type=str, default='DEFAULT_HER', choices=['PPO', 'DEFAULT_HER'], 
                              help='model to be used.')
-    global_group.add_argument('--epochs', type=int, default=500, 
+    global_group.add_argument('--epochs', type=int, default=500000, 
                              help='Number of epochs to run the training.')
     global_group.add_argument('--seed', type=int,
                               help='NumPy random seed.')

@@ -4,7 +4,7 @@ import pprint
 
 def parse_options(return_parser=False):
     # New CLI parser
-    parser = argparse.ArgumentParser(description='Train deep implicit 3D geometry representations.')
+    parser = argparse.ArgumentParser(description='Train Reinforcemnt Learning for ShadowHand robot.')
     
     # Global arguments
     global_group = parser.add_argument_group('global')
@@ -14,7 +14,7 @@ def parse_options(return_parser=False):
                               help='output path.')
     global_group.add_argument('--model', type=str, default='DEFAULT_HER', choices=['PPO', 'DEFAULT_HER'], 
                              help='model to be used.')
-    global_group.add_argument('--epochs', type=int, default=500000, 
+    global_group.add_argument('--epochs', type=int, default=10000, 
                              help='Number of epochs to run the training.')
     global_group.add_argument('--seed', type=int,
                               help='NumPy random seed.')

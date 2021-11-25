@@ -10,15 +10,18 @@ class Trainer(object):
     def __init__(self, args, args_str):
         self.args = args 
         self.args_str = args_str
-        self.use_cuda = torch.cuda.is_available()
-        self.device = torch.device('cuda' if self.use_cuda else 'cpu')
-        device_name = torch.cuda.get_device_name(device=self.device)
-        log.info(f'Using {device_name} with CUDA v{torch.version.cuda}')
-
+        
+        
+        self.init_device()
         self.build_path()
         self.set_env()
         self.set_network()
 
+    def init_device(self):
+        self.use_cuda = torch.cuda.is_available()
+        self.device = torch.device('cuda' if self.use_cuda else 'cpu')
+        device_name = torch.cuda.get_device_name(device=self.device)
+        log.info(f'Using {device_name} with CUDA v{torch.version.cuda}')
 
     def build_path(self):
         # create the output folder
@@ -44,7 +47,7 @@ class Trainer(object):
                 # Parameters for HER
                 replay_buffer_kwargs=dict(
                     n_sampled_goal=4,
-                    goal_selection_strategy='final',
+                    goal_selection_strategy='future',
                     online_sampling=True,
                     max_episode_length=100000,
                 ),

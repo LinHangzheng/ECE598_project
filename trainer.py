@@ -43,7 +43,7 @@ class Trainer(object):
                 replay_buffer_class=HerReplayBuffer,
                 # Parameters for HER
                 replay_buffer_kwargs=dict(
-                    n_sampled_goal=500,
+                    n_sampled_goal=4,
                     goal_selection_strategy='final',
                     online_sampling=True,
                     max_episode_length=100000,

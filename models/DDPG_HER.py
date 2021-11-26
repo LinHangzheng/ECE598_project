@@ -11,8 +11,8 @@ class DDPG(object):
     def __init__(self, args, env):
         # super(DDPG, self).__init__()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        action_space = env.action_space.shape[0]
         obs = self.env.reset()
+        action_space = env.action_space.shape[0]
         obs_size = obs['observation'].shape[0]
         goal_size = obs['desired_goal'].shape[0]
 

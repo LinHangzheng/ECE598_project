@@ -21,8 +21,9 @@ class Trainer(object):
     def init_device(self):
         self.use_cuda = torch.cuda.is_available()   
         self.device = torch.device('cuda' if self.use_cuda else 'cpu')
-        device_name = torch.cuda.get_device_name(device=self.device)
-        log.info(f'Using {device_name} with CUDA v{torch.version.cuda}')
+        if self.use_cuda:
+            device_name = torch.cuda.get_device_name(device=self.device)
+            log.info(f'Using {device_name} with CUDA v{torch.version.cuda}')
 
     def init_seed(self):
          ## fix random seed
@@ -74,7 +75,11 @@ class Trainer(object):
     
     def train(self):
         if self.args.model in ['PPO', 'DEFAULT_HER']:
-            self.model.learn(total_timesteps=self.args.epochs)
+            print(self.obs)
+            print(self.env.initial_state.qpos)
+            print(self.env.step(self.env.action_space.sample()))
+            self.model.learn(total_timesteps=self.args.epoch_num)
+            
     
     def test(self):
         rewards = []
@@ -96,5 +101,5 @@ class Trainer(object):
        
 
     def save_model(self):
-        if self.args.model == 'PPO':
-            self.model.save(os.path.join(self.args.output_path,'PPO','PPO_trash'))
+        if self.args.model in ['PPO', 'DEFAULT_HER']:
+            self.model.save(os.path.join(self.args.output_path,self.args.model,self.args.model+'_trash'))

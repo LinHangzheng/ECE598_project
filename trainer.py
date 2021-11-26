@@ -75,9 +75,14 @@ class Trainer(object):
     
     def train(self):
         if self.args.model in ['PPO', 'DEFAULT_HER']:
-            print(self.obs)
+            print(self.env.action_space)
+            obs = self.env.reset()
+
+            print(obs['observation'].shape[0])
+            print(obs['desired_goal'].shape[0])
             print(self.env.initial_state.qpos)
             print(self.env.step(self.env.action_space.sample()))
+            print(len(self.env.action_space.sample()))
             self.model.learn(total_timesteps=self.args.epoch_num)
             
     

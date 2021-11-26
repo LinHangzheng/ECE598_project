@@ -10,14 +10,17 @@ import torch.nn.functional as F
 #  @ hidden_size  : list<int> 3x1, the size of each hidden layer 
 # 
 class Actor(nn.Module):
-    def __init__(self, actor_hidden, input_size, action_space):
+    def __init__(self, obs_size, goal_size, action_space):
         super(Actor, self).__init__()
-        self.feature = nn.ModuleList([nn.Linear(input_size,actor_hidden[0])])
-        for i in range(len(actor_hidden)-1):
-            self.feature.append(nn.Linear(actor_hidden[i],actor_hidden[i+1]))
-            self.feature.append(nn.ReLU())
-        self.feature.append(nn.Linear(actor_hidden[-1],action_space))
+        
+        self.f1 = nn.Linear(obs_size+goal_size,256)
+        self.f2 = nn.Linear(256,256)
+        self.f3 = nn.Linear(256,256)
+        self.f4 = nn.Linear(256,action_space)
 
-    def forward(self, inputs):
-        action = self.feature(inputs)
-        return action
+    def forward(self, x):
+        x = F.relu(self.f1(x))
+        x = F.relu(self.f2(x))
+        x = F.relu(self.f3(x))
+        actions = F.relu(self.f4(x))
+        return actions

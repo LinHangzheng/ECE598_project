@@ -11,21 +11,16 @@ import torch.nn.functional as F
 # 
 
 class Critic(nn.Module):
-    def __init__(self, critic_hidden, input_size, action_space):
+    def __init__(self, obs_size, goal_size, action_space):
         super(Critic, self).__init__()
-        
-        self.pre_states = nn.ModuleList([nn.Linear(input_size,critic_hidden[0])])
-        self.pre_states.append(nn.ReLU())
 
-        self.evaluate = nn.ModuleList([nn.Linear(critic_hidden[0]+action_space,critic_hidden[1])])
-        for i in range(1,len(critic_hidden)-1):
-            self.evaluate.append(nn.Linear(critic_hidden[i],critic_hidden[i+1]))    
-            self.evaluate.append(nn.ReLU())
-        self.evaluate.append(nn.Linear(critic_hidden[-1],1))
+        self.f1 = nn.Linear(obs_size+goal_size+action_space,256)
+        self.f2 = nn.Linear(256,256)
+        self.f3 = nn.Linear(256,256)
+        self.f4 = nn.Linear(256,1)
 
 
-    def forward(self, inputs, actions):
-        x = self.pre_states(inputs)
-        x = torch.cat((x, actions), 1)
+    def forward(self, state, actions):
+        x = torch.cat((state, actions), dim=1)
         V = self.evaluate(x)
         return V

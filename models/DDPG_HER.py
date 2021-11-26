@@ -62,7 +62,7 @@ class DDPG(object):
 
         # loop to collect the rough rollouts
         while not done:
-            action = self.actor(torch.tensor(np.cat((state.observation,state.achieved_goal)),device=self.device).float())
+            action = self.actor(torch.tensor(np.concatenate((state.observation,state.achieved_goal)),device=self.device).float())
             action = [action.item()]
             # state = {observation: array<float>[25,1],
             #            achieved_goal: array<float>[3,1],

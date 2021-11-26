@@ -59,11 +59,12 @@ class DDPG(object):
         while not moved:
             rollouts = []
             obs = self.env.reset()
-            action = self.actor(torch.tensor(obs,device=self.device).float())
+            action = self.actor(torch.tensor(torch.cat((obs.observation,obs.achieved_goal)),device=self.device).float())
             done = False
 
             # loop to collect the rough rollouts
             while not done:
+                action = self.actor(torch.tensor(torch.cat((obs.observation,obs.achieved_goal)),device=self.device).float())
                 action = [action.item()]
                 # new_obs = {observation: array<float>[25,1],
                 #            achieved_goal: array<float>[3,1],
@@ -103,7 +104,7 @@ class DDPG(object):
         if rollouts[-1].achieved_goal == rollouts[0].achieved_goal:
             return False, rollouts
         else:    
-            # all the reward will be the same as the final reward
+            # all the rewards will be the same as the final reward
             for idx in range(len(rollouts)):
                 rollouts.reward[idx] = rollouts.reward[-1]
             return True, rollouts

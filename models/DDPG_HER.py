@@ -35,6 +35,7 @@ class DDPG(object):
         self.episode = args.episode
         self.epoch_num = args.epoch_num
         self.batch_size = args.batch_size
+        self.lr = args.lr
 
 
     def learn(self):
@@ -102,17 +103,49 @@ class DDPG(object):
         return rollouts, new_rollouts
 
     def update_model(self):
+        loss = torch.nn.MSELoss()
+        optim = torch.optim.Adam([self.actor.parameters(), self.critic.parameters()], lr = self.lr)
         for epoch in range(self.epoch_num):
+            actor_loss, critic_loss = 0., 0.
 
-            #sample a minibatch from HER buffer
+            state_batch = 
+            act_batch = 
+            next_state_batch = 
+            reward_batch = 
 
-            #update model with the minibatch
+            # act_batch = act_batch.reshape(-1,1)
 
+            cur_act, cur_val = self.actor(state_batch)
+            cur_val = self.critic(state_batch)
 
-        pass
+            next_act = self.actor(next_state_batch)
+            next_val = self.critic(next_state_batch)
 
-    def predict(self):
-        pass
+            V_target = reward_batch.reshape(-1,1) + self.gamma * next_val
 
-    def save(self):
-        pass
+            delta = V_target - cur_val
+            
+            #needs modification
+            log_act_distribution = self.actor.actor_to_distribution(cur_act).log_prob(act_batch)
+
+            actor_loss = -torch.mean(delta.detach() * log_act_distribution)
+            critic_loss = loss(V_target.detach(), cur_val)
+            total_loss = critic_loss + actor_loss
+
+            optim.zero_grad()
+            total_loss.backward()
+            # actor_loss.backward(retain_graph=True)
+            # critic_loss.backward()
+            optim.step()
+            #log info
+
+        return
+
+    def predict(self, obs, goal):
+        action = self.actor(torch.tensor(np.concatenate((obs,goal)),device=self.device).float())   
+        return action
+
+    def save(self, PATH):
+        torch.save(self.actor, PATH)
+        torch.save(self.critic, PATH)
+        return

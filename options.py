@@ -28,6 +28,8 @@ def parse_options(return_parser=False):
                               help='NumPy random seed.')
     global_group.add_argument('--gamma', type=float, default=0.99, 
                                 help='discount factor for DDPG.')
+    global_group.add_argument('--lr', type=float, default=0.001, 
+                                help='learning rate for model update.')
 
 
     # Parse and run

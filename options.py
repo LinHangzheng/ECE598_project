@@ -26,10 +26,6 @@ def parse_options(return_parser=False):
                              help='the size of the replay buffer.')
     global_group.add_argument('--seed', type=int, default =0,
                               help='NumPy random seed.')
-    global_group.add_argument('--actor-hidden', type=int, nargs=3, default=[128, 64, 32], 
-                                help='hidden layers size of actor.')
-    global_group.add_argument('--critic-hidden', type=int, nargs=3, default=[128, 64, 32], 
-                                help='hidden layers size of actor.')
     global_group.add_argument('--gamma', type=float, default=0.99, 
                                 help='discount factor for DDPG.')
 

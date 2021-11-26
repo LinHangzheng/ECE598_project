@@ -59,7 +59,6 @@ class DDPG(object):
         while not moved:
             rollouts = []
             obs = self.env.reset()
-            action = self.actor(torch.tensor(torch.cat((obs.observation,obs.achieved_goal)),device=self.device).float())
             done = False
 
             # loop to collect the rough rollouts

@@ -19,7 +19,7 @@ class Critic(nn.Module):
 
         self.evaluate = nn.ModuleList([nn.Linear(critic_hidden[0]+action_space,critic_hidden[1])])
         for i in range(1,len(critic_hidden)-1):
-            self.evaluate.append(nn.Linear(critic_hidden[i],critic_hidden[i+1]))
+            self.evaluate.append(nn.Linear(critic_hidden[i],critic_hidden[i+1]))    
             self.evaluate.append(nn.ReLU())
         self.evaluate.append(nn.Linear(critic_hidden[-1],1))
 

@@ -87,6 +87,7 @@ class DDPG(object):
             new_rollouts = rollouts.copy()
             for idx in range(len(new_rollouts)):
                 new_rollouts[idx].desired_goal = rollouts[-1].achieved_goal
+                new_rollouts[idx].reward = 0
             
             # store the rollouts
             self.HER_buffer.insert(rollouts)

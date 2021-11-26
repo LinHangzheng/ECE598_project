@@ -20,7 +20,9 @@ class Critic(nn.Module):
         self.f4 = nn.Linear(256,1)
 
 
-    def forward(self, state, actions):
-        x = torch.cat((state, actions), dim=1)
-        V = self.evaluate(x)
+    def forward(self, x):
+        x = F.relu(self.f1(x))
+        x = F.relu(self.f2(x))
+        x = F.relu(self.f3(x))
+        V = self.f4(x)
         return V

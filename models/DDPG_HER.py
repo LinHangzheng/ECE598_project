@@ -2,6 +2,7 @@ from stable_baselines3.common import buffers
 from lib import *
 from collections import  namedtuple
 import os
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -55,59 +56,47 @@ class DDPG(object):
         return
 
     def collect_rollouts(self):
-        moved = False
-        while not moved:
-            rollouts = []
-            obs = self.env.reset()
-            done = False
+        rollouts = []
+        state = self.env.reset()
+        done = False
 
-            # loop to collect the rough rollouts
-            while not done:
-                action = self.actor(torch.tensor(torch.cat((obs.observation,obs.achieved_goal)),device=self.device).float())
-                action = [action.item()]
-                # new_obs = {observation: array<float>[25,1],
-                #            achieved_goal: array<float>[3,1],
-                #            desired_goal: array<float>[3,1]}
-                # reward = float, -1 or 0
-                # done = bool               
-                new_obs, reward, done, _ = self.env.step(action)
-                # add the new rollout
-                rollouts.append(self.transition(torch.cat((obs.observation,obs.achieved_goal)),
-                                                action,reward,
-                                                torch.cat((new_obs.observation,new_obs.achieved_goal)))
-                                                ,new_obs.desired_goal)
-                obs = new_obs
+        # loop to collect the rough rollouts
+        while not done:
+            action = self.actor(torch.tensor(np.cat((state.observation,state.achieved_goal)),device=self.device).float())
+            action = [action.item()]
+            # state = {observation: array<float>[25,1],
+            #            achieved_goal: array<float>[3,1],
+            #            desired_goal: array<float>[3,1]}
+            # reward = float, -1 or 0
+            # done = bool               
+            next_state, reward, done, _ = self.env.step(action)
+            # add the new rollout
+            rollouts.append(self.transition(state,action,reward,next_state))
+            state = next_state
 
-            # recalculate the goal    
-            moved, rollouts = self.recal_reward(rollouts)
-            if not moved:
-                continue
-            
-            # switch the target 
-            new_rollouts = rollouts.copy()
-            for idx in range(len(new_rollouts)):
-                new_rollouts[idx].desired_goal = rollouts[-1].achieved_goal
-                new_rollouts[idx].reward = 0
-            
-            # store the rollouts
-            self.HER_buffer.insert(rollouts)
-            self.HER_buffer.insert(new_rollouts)
+        # recalculate the goal    
+        rollouts, new_rollouts = self.recal_reward(rollouts)
+        
+        # store the rollouts
+        self.HER_buffer.insert(rollouts)
+        self.HER_buffer.insert(new_rollouts)
             
     # The function that recalculates the reward
     # input:
     #   @ rollouts : list<transition>[n,1]
     # output:
-    #   @ moved: bool, if the slide block moved, it would be 1, otherwise it would be 0
     #   @ rollouts: the rollouts that recalculates the rewards
+    #   @ new_rollouts: the rollouts that switches the goal
     def recal_reward(self,rollouts):
-        # check if the block moved.
-        if rollouts[-1].achieved_goal == rollouts[0].achieved_goal:
-            return False, rollouts
-        else:    
+        new_rollouts = rollouts.copy()
+        for idx in range(len(new_rollouts)):
             # all the rewards will be the same as the final reward
-            for idx in range(len(rollouts)):
-                rollouts.reward[idx] = rollouts.reward[-1]
-            return True, rollouts
+            rollouts[idx].reward = rollouts[-1].reward
+            new_rollouts[idx].reward = 0
+            # switch the target 
+            new_rollouts[idx].state.desired_goal = rollouts[-1].next_state.achieved_goal
+
+        return rollouts, new_rollouts
 
     def update_model(self):
         for epoch in range(self.epoch_num):

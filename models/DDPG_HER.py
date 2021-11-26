@@ -76,6 +76,7 @@ class DDPG(object):
                                                 action,reward,
                                                 torch.cat((new_obs.observation,new_obs.achieved_goal)))
                                                 ,new_obs.desired_goal)
+                obs = new_obs
 
             # recalculate the goal    
             moved, rollouts = self.recal_reward(rollouts)

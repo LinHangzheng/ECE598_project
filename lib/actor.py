@@ -10,17 +10,17 @@ import torch.nn.functional as F
 #  @ hidden_size  : list<int> 3x1, the size of each hidden layer 
 # 
 class Actor(nn.Module):
-    def __init__(self, obs_size, goal_size, action_space):
+    def __init__(self, env_params):
         super(Actor, self).__init__()
-        
-        self.f1 = nn.Linear(obs_size+goal_size,256)
+
+        self.f1 = nn.Linear(env_params['observation'] +env_params['goal'],256)
         self.f2 = nn.Linear(256,256)
         self.f3 = nn.Linear(256,256)
-        self.f4 = nn.Linear(256,action_space)
-
+        self.f4 = nn.Linear(256,env_params['action'] )
+        self.action_max = env_params['action_max']
     def forward(self, x):
         x = F.relu(self.f1(x))
         x = F.relu(self.f2(x))
         x = F.relu(self.f3(x))
-        actions = self.f4(x)
+        actions = self.action_max*torch.sigmoid(self.f4(x))
         return actions

@@ -18,6 +18,8 @@ def parse_options(return_parser=False):
                              help='Number of episodes to run the training.')
     global_group.add_argument('--epoch_num', type=int, default=50, 
                              help='Number of epochs for model update.')
+    global_group.add_argument('--target_update_per_epoch', type=int, default=5, 
+                             help='number of epochs between two target updates.')
     global_group.add_argument('--batch_size', type=int, default=512, 
                              help='batch size for model update.')
     global_group.add_argument('--T', type=int, default=500, 
@@ -30,7 +32,6 @@ def parse_options(return_parser=False):
                                 help='discount factor for DDPG.')
     global_group.add_argument('--lr', type=float, default=0.001, 
                                 help='learning rate for model update.')
-
 
     # Parse and run
     if return_parser:

@@ -56,6 +56,14 @@ class DDPG_HER(object):
         return
     
 
+    def _update_target(self):
+        self.actor_target.load_state_dict(self.actor.state_dict())
+        for param in self.actor_target.parameters():
+            param.requires_grad = False
+        self.critic_target.load_state_dict(self.critic.state_dict())
+        for param in self.critic_target.parameters():
+            param.requires_grad = False
+
     def _set_net(self,env_params):
         # Define the actor
         self.actor = Actor(env_params).to(self.device)
@@ -157,6 +165,9 @@ class DDPG_HER(object):
             # actor_loss.backward(retain_graph=True)
             # critic_loss.backward()
             
+            if np.mod(epoch, self.args.target_update_per_epoch) == 0:
+                self._update_target()
+
             #log info
 
         return

@@ -27,7 +27,7 @@ class DDPG(object):
         self.args = args
 
         self.HER_buffer = ReplayBuffer(args.buffer_size) 
-        self.transition = namedtuple('Transition',('state','action','reward','next_state','target'))
+        self.transition = namedtuple('Transition',('state','action','reward','next_state'))
 
         self.env = env
         self.gamma = args.gamma
@@ -105,14 +105,27 @@ class DDPG(object):
     def update_model(self):
         loss = torch.nn.MSELoss()
         optim = torch.optim.Adam([self.actor.parameters(), self.critic.parameters()], lr = self.lr)
+
         for epoch in range(self.epoch_num):
             actor_loss, critic_loss = 0., 0.
 
-            state_batch = 
-            act_batch = 
-            next_state_batch = 
-            reward_batch = 
+            sample_batch = self.HER_buffer.sample(self.batch_size)
 
+            state_batch = []
+            act_batch = []
+            next_state_batch = []
+            reward_batch = []
+
+            for i in sample_batch:
+                state_batch.append(np.concatenate(i['state']['observation'],i['state']['achieved_goal']))
+                act_batch.append(i['action'])
+                next_state_batch.append(np.concatenate(i['next_state']['observation'],i['next_state']['achieved_goal']))
+                reward_batch.append(i['reward'])
+
+            state_batch = torch.FloatTensor(state_batch,device=self.device)
+            act_batch = torch.FloatTensor(act_batch, device=self.device)
+            next_state_batch = torch.FloatTensor(next_state_batch, device=self.device)
+            reward_batch = torch.FloatTensor(reward_batch, device=self.device)
             # act_batch = act_batch.reshape(-1,1)
 
             cur_act, cur_val = self.actor(state_batch)

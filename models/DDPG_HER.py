@@ -135,8 +135,7 @@ class DDPG_HER(object):
             rewards = torch.from_numpy(rewards).float().to(self.device)
             next_states = torch.from_numpy(next_states).float().to(self.device)
 
-            cur_act = self.actor(states)
-            cur_val = self.critic(torch.cat((states, cur_act),1))
+            cur_val = self.critic(torch.cat((states, acts),1))
 
             next_act = self.actor(next_states)
             next_val = self.critic(torch.cat((next_states, next_act),1))
@@ -149,11 +148,11 @@ class DDPG_HER(object):
 
             
             self.optim_actor.zero_grad()
-            actor_loss.backward()
-            self.optim_actor.step()
-
+            actor_loss.backward(retain_graph=True)
             self.optim_critic.zero_grad()
             critic_loss.backward()
+
+            self.optim_actor.step()
             self.optim_critic.step()
             # actor_loss.backward(retain_graph=True)
             # critic_loss.backward()

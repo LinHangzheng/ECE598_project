@@ -7,10 +7,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class DDPG(object):
+class DDPG_HER(object):
     def __init__(self, args, env):
         # super(DDPG, self).__init__()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        
+        self.env = env
         obs = self.env.reset()
         action_space = env.action_space.shape[0]
         obs_size = obs['observation'].shape[0]
@@ -27,15 +29,18 @@ class DDPG(object):
         self.args = args
 
         self.HER_buffer = ReplayBuffer(args.buffer_size) 
-        self.transition = namedtuple('Transition',('state','action','reward','next_state'))
+        # self.transition = namedtuple('Transition',('state','action','reward','next_state'))
 
-        self.env = env
+        
         self.gamma = args.gamma
         self.T = args.T
         self.episode = args.episode
         self.epoch_num = args.epoch_num
         self.batch_size = args.batch_size
         self.lr = args.lr
+    
+    def transition(self, state, action, reward, next_state):
+        return [state, action, reward, next_state]
 
 
     def learn(self):
@@ -67,7 +72,7 @@ class DDPG(object):
         # loop to collect the rough rollouts
         while not done:
             action = self.actor(torch.tensor(np.concatenate((state['observation'],state['achieved_goal'])),device=self.device).float())
-            action = [action.item()]
+            action = action.tolist()
             # state = {observation: array<float>[25,1],
             #            achieved_goal: array<float>[3,1],
             #            desired_goal: array<float>[3,1]}
@@ -95,21 +100,23 @@ class DDPG(object):
         new_rollouts = rollouts.copy()
         for idx in range(len(new_rollouts)):
             # all the rewards will be the same as the final reward
-            rollouts[idx].reward = rollouts[-1].reward
-            new_rollouts[idx].reward = 0
+            rollouts[idx][2] = rollouts[-1][2]
+            new_rollouts[idx][2] = 0
             # switch the target 
-            new_rollouts[idx].state['desired_goal'] = rollouts[-1].next_state['achieved_goal']
+            new_rollouts[idx][0]['desired_goal'] = rollouts[-1][3]['achieved_goal']
 
         return rollouts, new_rollouts
 
     def update_model(self):
+        #modified to use two optimizers
         loss = torch.nn.MSELoss()
-        optim = torch.optim.Adam([self.actor.parameters(), self.critic.parameters()], lr = self.lr)
+        optim_actor = torch.optim.Adam(self.actor.parameters(), lr = self.lr)
+        optim_critic = torch.optim.Adam(self.critic.parameters(), lr = self.lr)
 
         for epoch in range(self.epoch_num):
             actor_loss, critic_loss = 0., 0.
 
-            sample_batch = self.HER_buffer.sample(self.batch_size)
+            sample_batch = self.HER_buffer.sample_batch(self.batch_size)
 
             state_batch = []
             act_batch = []
@@ -117,10 +124,10 @@ class DDPG(object):
             reward_batch = []
 
             for i in sample_batch:
-                state_batch.append(np.concatenate(i['state']['observation'],i['state']['achieved_goal']))
-                act_batch.append(i['action'])
-                next_state_batch.append(np.concatenate(i['next_state']['observation'],i['next_state']['achieved_goal']))
-                reward_batch.append(i['reward'])
+                state_batch.append(np.concatenate((i[0]['observation'],i[0]['achieved_goal'])))
+                act_batch.append(i[1])
+                next_state_batch.append(np.concatenate((i[3]['observation'],i[3]['achieved_goal'])))
+                reward_batch.append(i[2])
 
             state_batch = torch.FloatTensor(state_batch,device=self.device)
             act_batch = torch.FloatTensor(act_batch, device=self.device)
@@ -128,11 +135,11 @@ class DDPG(object):
             reward_batch = torch.FloatTensor(reward_batch, device=self.device)
             # act_batch = act_batch.reshape(-1,1)
 
-            cur_act, cur_val = self.actor(state_batch)
-            cur_val = self.critic(state_batch)
+            cur_act = self.actor(state_batch)
+            cur_val = self.critic(torch.cat((state_batch, cur_act),1))
 
             next_act = self.actor(next_state_batch)
-            next_val = self.critic(next_state_batch)
+            next_val = self.critic(torch.cat((next_state_batch, next_act),1))
 
             V_target = reward_batch.reshape(-1,1) + self.gamma * next_val
 
@@ -143,13 +150,18 @@ class DDPG(object):
 
             actor_loss = -torch.mean(delta.detach() * log_act_distribution)
             critic_loss = loss(V_target.detach(), cur_val)
-            total_loss = critic_loss + actor_loss
+            # total_loss = critic_loss + actor_loss
 
-            optim.zero_grad()
-            total_loss.backward()
+            optim_actor.zero_grad()
+            actor_loss.backward()
+            optim_actor.step()
+
+            optim_critic.zero_grad()
+            critic_loss.backward()
+            optim_critic.step()
             # actor_loss.backward(retain_graph=True)
             # critic_loss.backward()
-            optim.step()
+            
             #log info
 
         return

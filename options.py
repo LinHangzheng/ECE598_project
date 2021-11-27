@@ -12,7 +12,7 @@ def parse_options(return_parser=False):
                               help='Experiment name.')
     global_group.add_argument('--output-path', type=str, default='_result/',
                               help='output path.')
-    global_group.add_argument('--model', type=str, default='DEFAULT_HER', choices=['PPO', 'DEFAULT_HER'], 
+    global_group.add_argument('--model', type=str, default='DDPG_HER', choices=['PPO', 'DEFAULT_HER','DDPG_HER'], 
                              help='model to be used.')
     global_group.add_argument('--episode', type=int, default=10000, 
                              help='Number of episodes to run the training.')

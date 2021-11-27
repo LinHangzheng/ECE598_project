@@ -6,6 +6,7 @@ import logging as log
 import random
 from stable_baselines3 import PPO, HerReplayBuffer, DDPG
 from torch._C import device
+from models.DDPG_HER import DDPG_HER
 
 class Trainer(object):
     def __init__(self, args, args_str):
@@ -62,6 +63,9 @@ class Trainer(object):
                 verbose=1,
                 device = self.device
             )
+
+        if self.args.model == 'DDPG_HER':
+            self.model = DDPG_HER(self.args, self.env)
     
     def render(self):
         for i in range(1000):
@@ -78,12 +82,16 @@ class Trainer(object):
             print(self.env.action_space)
             obs = self.env.reset()
 
-            print(obs['observation'].shape[0])
-            print(obs['desired_goal'].shape[0])
-            print(self.env.initial_state.qpos)
-            print(self.env.step(self.env.action_space.sample()))
-            print(len(self.env.action_space.sample()))
+            # print(obs['observation'].shape[0])
+            # print(obs['desired_goal'].shape[0])
+            # print(self.env.initial_state.qpos)
+            # print(self.env.step(self.env.action_space.sample()))
+            # print(len(self.env.action_space.sample()))
             self.model.learn(total_timesteps=self.args.epoch_num)
+
+        elif self.args.model == 'DDPG_HER':
+            print("Start testing DDPG_HER")
+            self.model.learn()
             
     
     def test(self):

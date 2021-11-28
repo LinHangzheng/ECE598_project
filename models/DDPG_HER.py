@@ -32,7 +32,8 @@ class DDPG_HER(object):
             #sample a goal and starting position from env
 
             #collect rollouts and store in HER buffer
-            self._collect_rollouts()
+
+            self._collect_rollouts(4)
 
             #update models using HER buffer
             self._update_model()
@@ -120,40 +121,43 @@ class DDPG_HER(object):
         new_rollouts = copy.deepcopy(rollouts)
         for idx in range(len(new_rollouts)):
             # all the rewards will be the same as the final reward
-            rollouts[idx][2] = rollouts[-1][2]
-            new_rollouts[idx][2] = 0
+            # rollouts[idx][2] = rollouts[-1][2]
+            # new_rollouts[idx][2] = 0
             # switch the target 
             new_rollouts[idx][0]['desired_goal'] = rollouts[-1][3]['achieved_goal']
             new_rollouts[idx][3]['desired_goal'] = rollouts[-1][3]['achieved_goal']
+            new_rollouts[idx][2]=self.env.compute_reward(new_rollouts[idx][3]['achieved_goal'],new_rollouts[idx][3]['desired_goal'],{})
 
         return rollouts, new_rollouts
 
 
-    def _collect_rollouts(self):
-        rollouts = []
-        state = self.env.reset()
-        done = False
+    def _collect_rollouts(self, rollouts_num):
+        for _ in range(rollouts_num):
+            rollouts = []
+            state = self.env.reset()
+            done = False
 
-        # loop to collect the rough rollouts
-        while not done:
-            action = self.actor(torch.tensor(np.concatenate((state['observation'],state['achieved_goal'])),device=self.device).float())
-            action = action.tolist()
-            # state = {observation: array<float>[25,1],
-            #            achieved_goal: array<float>[3,1],
-            #            desired_goal: array<float>[3,1]}
-            # reward = float, -1 or 0
-            # done = bool               
-            next_state, reward, done, _ = self.env.step(action)
-            # add the new rollout
-            rollouts.append([state,action,reward,next_state])
-            state = next_state
+            # loop to collect the rough rollouts
+            while not done:
+                action = self.actor(torch.tensor(np.concatenate((state['observation'],state['achieved_goal'])),device=self.device).float())
+                action = action.tolist()
+                # state = {observation: array<float>[25,1],
+                #            achieved_goal: array<float>[3,1],
+                #            desired_goal: array<float>[3,1]}
+                # reward = float, -1 or 0
+                # done = bool               
+                next_state, reward, done, _ = self.env.step(action)
+                # add the new rollout
+                rollouts.append([state,action,reward,next_state])
+                state = next_state
 
-        # recalculate the goal    
-        rollouts, new_rollouts = self._recal_reward(rollouts)
-        
-        # store the rollouts
-        self.HER_buffer.insert(rollouts)
-        self.HER_buffer.insert(new_rollouts)
+            # recalculate the goal    
+            rollouts, new_rollouts = self._recal_reward(rollouts)
+            
+            # store the rollouts
+            if torch.rand(1) < self.args.fail_rate:
+                self.HER_buffer.insert(rollouts)
+            self.HER_buffer.insert(new_rollouts)
     
 
     def _update_model(self):
@@ -203,6 +207,8 @@ class DDPG_HER(object):
         #log info
         mean_actor_loss = np.mean(self.total_actor_loss)
         mean_critic_loss = np.mean(self.total_critic_loss)
+        
         log.info(f'epoch: {episode_num}/{self.args.episode} actor loss: {mean_actor_loss} | critic loss: {mean_critic_loss}')
+        log.info(f'buffer size: {len(self.HER_buffer)}')
         self.total_actor_loss = []
         self.total_cirtic_loss = []

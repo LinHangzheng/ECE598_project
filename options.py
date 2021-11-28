@@ -20,7 +20,7 @@ def parse_options(return_parser=False):
                              help='number of episodes between two evaluation.')
     global_group.add_argument('--log_per_episode', type=int, default=50, 
                              help='number of episodes between two loss log.')
-    global_group.add_argument('--eval_episode_num', type=int, default=200, 
+    global_group.add_argument('--eval_episode_num', type=int, default=100, 
                              help='number of episodes used for each evaluation.')
     global_group.add_argument('--epoch_num', type=int, default=50, 
                              help='Number of epochs for model update.')
@@ -35,6 +35,8 @@ def parse_options(return_parser=False):
     global_group.add_argument('--seed', type=int, default =0,
                               help='NumPy random seed.')
     global_group.add_argument('--gamma', type=float, default=0.99, 
+                                help='discount factor for DDPG.')
+    global_group.add_argument('--fail-rate', type=float, default=0.25, 
                                 help='discount factor for DDPG.')
     global_group.add_argument('--lr', type=float, default=0.001, 
                                 help='learning rate for model update.')

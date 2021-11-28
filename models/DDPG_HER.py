@@ -38,6 +38,8 @@ class DDPG_HER(object):
             #update models using HER buffer
             self._update_model()
 
+            self._update_target()
+
             if episode_num !=0 and np.mod(episode_num, self.args.log_per_episode) == 0:
                 self._log(episode_num)
 
@@ -135,22 +137,27 @@ class DDPG_HER(object):
         for _ in range(rollouts_num):
             rollouts = []
             state = self.env.reset()
-            done = False
+            
+            moved = False
 
             # loop to collect the rough rollouts
-            while not done:
-                action = self.actor(torch.tensor(np.concatenate((state['observation'],state['achieved_goal'])),device=self.device).float())
-                action = self._actions_noise(action)
-                action = action.tolist()
-                # state = {observation: array<float>[25,1],
-                #            achieved_goal: array<float>[3,1],
-                #            desired_goal: array<float>[3,1]}
-                # reward = float, -1 or 0
-                # done = bool               
-                next_state, reward, done, _ = self.env.step(action)
-                # add the new rollout
-                rollouts.append([state,action,reward,next_state])
-                state = next_state
+            while not moved:
+                done = False
+                while not done:
+                    action = self.actor(torch.tensor(np.concatenate((state['observation'],state['achieved_goal'])),device=self.device).float())
+                    action = self._actions_noise(action)
+                    action = action.tolist()
+                    # state = {observation: array<float>[25,1],
+                    #            achieved_goal: array<float>[3,1],
+                    #            desired_goal: array<float>[3,1]}
+                    # reward = float, -1 or 0
+                    # done = bool               
+                    next_state, reward, done, _ = self.env.step(action)
+                    # add the new rollout
+                    rollouts.append([state,action,reward,next_state])
+                    state = next_state
+                moved = self.env.compute_reward(rollouts[0][0]['achieved_goal'],rollouts[-1][3]['achieved_goal'],{})
+
 
             # recalculate the goal    
             rollouts, new_rollouts = self._recal_reward(rollouts)
@@ -199,8 +206,7 @@ class DDPG_HER(object):
             critic_loss.backward()
             self.optim_critic.step()
           
-            if np.mod(epoch, self.args.target_update_per_epoch) == 0:
-                self._update_target()
+
 
         
 

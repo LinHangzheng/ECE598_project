@@ -68,6 +68,7 @@ class Trainer(object):
             self.model = DDPG_HER(self.args, self.env)
     
     def render(self):
+        obs = self.evn.reset()
         for i in range(1000):
             action, _states = self.model.predict(obs, deterministic=True)
             obs, reward, done, info = self.env.step(action)

@@ -105,13 +105,27 @@ class DDPG_HER(object):
         new_rollouts = copy.deepcopy(rollouts)
         for idx in range(len(new_rollouts)):
             # all the rewards will be the same as the final reward
-            rollouts[idx][2] = rollouts[-1][2]
-            new_rollouts[idx][2] = 0
+            # rollouts[idx][2] = rollouts[-1][2]
+            # new_rollouts[idx][2] = 0
             # switch the target 
             new_rollouts[idx][0]['desired_goal'] = rollouts[-1][3]['achieved_goal']
             new_rollouts[idx][3]['desired_goal'] = rollouts[-1][3]['achieved_goal']
+            new_rollouts[idx][2]=self.env.compute_reward(new_rollouts[idx][3]['achieved_goal'],new_rollouts[idx][3]['desired_goal'],{})
 
         return rollouts, new_rollouts
+
+    def _passing_reward(self,rollouts):
+        new_rollouts = copy.deepcopy(rollouts)
+        for idx in range(len(new_rollouts)//2, len(new_rollouts)):
+            # all the rewards will be the same as the final reward
+            # rollouts[idx][2] = rollouts[-1][2]
+            # new_rollouts[idx][2] = 0
+            # switch the target 
+            new_rollouts[idx][0]['desired_goal'] = rollouts[idx][3]['achieved_goal']
+            new_rollouts[idx][3]['desired_goal'] = rollouts[idx][3]['achieved_goal']
+            new_rollouts[idx][2]=self.env.compute_reward(new_rollouts[idx][3]['achieved_goal'],new_rollouts[idx][3]['desired_goal'],{})
+
+        return new_rollouts
     
     def choose_act(self, action):
         action = action.detach().cpu().numpy().squeeze()
@@ -158,11 +172,13 @@ class DDPG_HER(object):
         # recalculate the goal    
         rollouts, new_rollouts = self._recal_reward(rollouts)
 
+        new_passing_rollouts = self._passing_reward(rollouts)
 
         
         # store the rollouts
-        # self.HER_buffer.insert(rollouts)
+        self.HER_buffer.insert(rollouts)
         self.HER_buffer.insert(new_rollouts)
+        self.HER_buffer.insert(new_passing_rollouts)
 
         #update normalizers
         self.normalizer_obs.update(np.array(obs_list))

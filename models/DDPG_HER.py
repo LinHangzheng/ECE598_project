@@ -162,9 +162,7 @@ class DDPG_HER(object):
 
             self.optim_actor.step()
             self.optim_critic.step()
-            # actor_loss.backward(retain_graph=True)
-            # critic_loss.backward()
-            
+          
             if np.mod(epoch, self.args.target_update_per_epoch) == 0:
                 self._update_target()
 

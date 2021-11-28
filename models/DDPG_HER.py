@@ -139,10 +139,7 @@ class DDPG_HER(object):
 
             # loop to collect the rough rollouts
             while not moved:
-<<<<<<< HEAD
                 state = self.env.reset()
-=======
->>>>>>> abe414157183db02bdae517142a1f2b4c81793a6
                 rollouts = []
                 done = False
                 while not done:

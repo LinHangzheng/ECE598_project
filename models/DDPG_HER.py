@@ -67,14 +67,16 @@ class DDPG_HER(object):
             state = self.env.reset()
             obs = state['observation']
             goal = state['desired_goal']
+            is_success = 0.
             for _ in range(max_episode_step):
                 with torch.no_grad():
                     act = self.predict(obs,goal)
                 state_next, _, _, info = self.env.step(act)
                 obs = state_next['observation']
                 goal = state_next['desired_goal']
-                total_success += info['is_success']
-                total_step += 1.
+                is_success = info['is_success']
+            total_success += is_success
+            total_step += 1.
         success_rate = total_success/total_step
         print('Evaluation at episode #{}, eval success rate = {:.3f}'.format(episode_num, success_rate))
 

@@ -21,6 +21,7 @@ class DDPG_HER(object):
         self._set_net(self.env_params)
         self._set_criterion()
         self._set_opt()
+        self._set_random_act()
 
         self.HER_buffer = ReplayBuffer(args.buffer_size, self.env_params) 
 
@@ -39,6 +40,8 @@ class DDPG_HER(object):
             self._update_model()
 
             self._update_target()
+
+            self._random_act_decay()
 
             if episode_num !=0 and np.mod(episode_num, self.args.log_per_episode) == 0:
                 self._log(episode_num)
@@ -112,6 +115,15 @@ class DDPG_HER(object):
     def _set_opt(self):
         self.optim_actor = torch.optim.Adam(self.actor.parameters(), lr = self.args.lr)
         self.optim_critic = torch.optim.Adam(self.critic.parameters(), lr = self.args.lr)
+
+    def _set_random_act(self):
+        self.noise_eps = self.args.noise_eps
+        self.random_eps = self.args.random_eps
+        self.random_decay = self.args.random_decay
+
+    def _random_act_decay(self):
+        self.random_eps *= self.random_decay
+        self.noise_eps *= self.random_decay
 
     # The function that recalculates the reward
     # input:
@@ -222,11 +234,11 @@ class DDPG_HER(object):
 
     def _actions_noise(self, action):
         # add the gaussian
-        action += self.args.noise_eps * self.env_params['action_max'] * torch.randn(*action.shape,device = self.device)
+        action += self.noise_eps * self.env_params['action_max'] * torch.randn(*action.shape,device = self.device)
         action = torch.clamp(action, -self.env_params['action_max'], self.env_params['action_max'])
         # random actions...
         random_actions = np.random.uniform(low=-self.env_params['action_max'], high=self.env_params['action_max'], \
                                             size=self.env_params['action'])
         # choose if use the random actions
-        action = random_actions if torch.rand(1) < self.args.noise_eps else action
+        action = random_actions if torch.rand(1) < self.random_eps else action
         return action

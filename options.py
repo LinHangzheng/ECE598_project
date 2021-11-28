@@ -14,7 +14,7 @@ def parse_options(return_parser=False):
                               help='output path.')
     global_group.add_argument('--model', type=str, default='DDPG_HER', choices=['PPO', 'DEFAULT_HER','DDPG_HER'], 
                              help='model to be used.')
-    global_group.add_argument('--episode', type=int, default=10000, 
+    global_group.add_argument('--episode', type=int, default=100, 
                              help='Number of episodes to run the training.')
     global_group.add_argument('--epoch_num', type=int, default=50, 
                              help='Number of epochs for model update.')

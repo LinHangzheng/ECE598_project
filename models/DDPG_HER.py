@@ -54,8 +54,8 @@ class DDPG_HER(object):
         return
 
 
-    def predict(self, obs, goal):
-        action = self.actor(torch.tensor(np.concatenate((obs,goal)),device=self.device).float())   
+    def predict(self, state):
+        action = self.actor(torch.tensor(np.concatenate((state['observation'],state['desired_goal'])),device=self.device).float())   
         return action
 
 
@@ -126,6 +126,7 @@ class DDPG_HER(object):
         return action
 
     def _collect_rollouts(self):
+        
         rollouts = []
         state = self.env.reset()
         done = False
@@ -160,7 +161,7 @@ class DDPG_HER(object):
 
         
         # store the rollouts
-        self.HER_buffer.insert(rollouts)
+        # self.HER_buffer.insert(rollouts)
         self.HER_buffer.insert(new_rollouts)
 
         #update normalizers
@@ -212,7 +213,9 @@ class DDPG_HER(object):
             clip_return = 1 / (1 - self.args.gamma)
             V_target = torch.clamp(V_target, -clip_return, 0)
 
-            actor_loss = -torch.mean(self.critic(torch.cat((states, cur_act/self.env.action_space.high[0]),1)))
+            actor_loss = -torch.mean(self.critic(torch.cat((states, cur_act),1)))
+            # actor_loss = -self.critic_network(inputs_norm_tensor, actions_real).mean()
+            actor_loss += 1 * (cur_act / self.env.action_space.high[0]).pow(2).mean()
             critic_loss = self.criterion(V_target, cur_val)
             # total_loss = critic_loss + actor_loss
 

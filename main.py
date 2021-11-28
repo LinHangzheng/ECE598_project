@@ -15,7 +15,7 @@ if __name__ == "__main__":
     trainer = Trainer(args, args_str)
     trainer.train()
     trainer.save_model()
-    # trainer.render()
+    trainer.render()
     trainer.test()
     
 

@@ -112,7 +112,18 @@ class DDPG_HER(object):
             new_rollouts[idx][3]['desired_goal'] = rollouts[-1][3]['achieved_goal']
 
         return rollouts, new_rollouts
-
+    
+    def choose_act(self, action):
+        action = action.detach().cpu().numpy().squeeze()
+        # add the gaussian
+        action += 0.2 * self.env.action_space.high[0] * np.random.randn(*action.shape)
+        action = np.clip(action, -self.env.action_space.high[0], self.env.action_space.high[0])
+        # random actions...
+        random_actions = np.random.uniform(low=-self.env.action_space.high[0], high=self.env.action_space.high[0], \
+                                            size=4)
+        # choose if use the random actions
+        action += np.random.binomial(1, 0.3, 1)[0] * (random_actions - action)
+        return action
 
     def _collect_rollouts(self):
         rollouts = []
@@ -125,6 +136,10 @@ class DDPG_HER(object):
         # loop to collect the rough rollouts
         while not done:
             action = self.actor(torch.tensor(np.concatenate((state['observation'],state['achieved_goal'])),device=self.device).float())
+            
+            #choose action with noice
+            action = self.choose_act(action)
+            
             action = action.tolist()
             # state = {observation: array<float>[25,1],
             #            achieved_goal: array<float>[3,1],
@@ -154,6 +169,7 @@ class DDPG_HER(object):
 
         self.normalizer_obs.recompute_stats()
         self.normalizer_goal.recompute_stats()
+    
     
 
     def _update_model(self):

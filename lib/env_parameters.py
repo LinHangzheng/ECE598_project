@@ -6,5 +6,6 @@ def get_env_parameters(env):
     env_params = {'action': action_space,
                   'observation': obs_size,
                   'goal': goal_size,
-                  'action_max': env.action_space.high[0]}
+                  'action_max': env.action_space.high[0],
+                  'max_episode_steps': env._max_episode_steps}
     return env_params

@@ -16,6 +16,7 @@ class DDPG_HER(object):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         env_params = get_env_parameters(self.env)
+        self.env_params = env_params
 
         self._set_net(env_params)
         self._set_criterion()

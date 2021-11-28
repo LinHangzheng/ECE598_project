@@ -36,7 +36,10 @@ class DDPG_HER(object):
             #update models using HER buffer
             self._update_model()
 
-            #validation
+            #evaluate
+            if np.mod(episode_num, self.args.evaluate_per_episode) == 0:
+                success_rate = self._evaluate(episode_num)
+
             #log info
 
         #save model
@@ -46,7 +49,7 @@ class DDPG_HER(object):
 
 
     def predict(self, obs, goal):
-        action = self.actor(torch.tensor(np.concatenate((obs,goal)),device=self.device).float())   
+        action = self.actor(torch.tensor(np.concatenate((obs,goal)),device=self.device).float()).numpy().squeeze()
         return action
 
 
@@ -55,6 +58,29 @@ class DDPG_HER(object):
         torch.save(self.critic, PATH)
         return
     
+    def _evaluate(self, episode_num):
+        total_success = 0.0
+        total_step = 0.
+        eval_episode_num = self.args.eval_episode_num
+        max_episode_step = self.env_params['max_episode_steps']
+        for _ in range(eval_episode_num):
+            state = self.env.reset()
+            obs = state['observation']
+            goal = state['desired_goal']
+            for _ in range(max_episode_step):
+                with torch.no_grad():
+                    act = self.predict(obs,goal)
+                state_next, _, _, info = self.env.step(act)
+                obs = state_next['observation']
+                goal = state_next['desired_goal']
+                total_success += info['is_success']
+                total_step += 1.
+        success_rate = total_success/total_step
+        print('Evaluation at episode #{}, eval success rate = {:.3f}'.format(episode_num, success_rate))
+
+        #log info
+        return success_rate
+
 
     def _update_target(self):
         self.actor_target.load_state_dict(self.actor.state_dict())

@@ -16,6 +16,10 @@ def parse_options(return_parser=False):
                              help='model to be used.')
     global_group.add_argument('--episode', type=int, default=10000, 
                              help='Number of episodes to run the training.')
+    global_group.add_argument('--evaluate_per_episode', type=int, default=200, 
+                             help='number of episodes between two evaluation.')
+    global_group.add_argument('--eval_episode_num', type=int, default=10, 
+                             help='number of episodes used for each evaluation.')
     global_group.add_argument('--epoch_num', type=int, default=50, 
                              help='Number of epochs for model update.')
     global_group.add_argument('--target_update_per_epoch', type=int, default=5, 

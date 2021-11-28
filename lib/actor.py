@@ -26,5 +26,5 @@ class Actor(nn.Module):
         x = F.relu(self.f1(x))
         x = F.relu(self.f2(x))
         x = F.relu(self.f3(x))
-        actions = self.action_max*torch.sigmoid(self.f4(x))
+        actions = self.action_max*torch.tanh(self.f4(x))
         return actions

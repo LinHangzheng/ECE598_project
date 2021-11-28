@@ -79,7 +79,7 @@ class DDPG_HER(object):
                 is_success = info['is_success']
             total_success += is_success
         success_rate = total_success/self.args.eval_episode_num
-        print('Evaluation at episode #{}, eval success rate = {:.3f}'.format(episode_num, success_rate))
+        log.info(f'Evaluation at episode #{episode_num}, eval success rate = {success_rate}')
 
         #log info
         return success_rate
@@ -140,6 +140,7 @@ class DDPG_HER(object):
             # loop to collect the rough rollouts
             while not done:
                 action = self.actor(torch.tensor(np.concatenate((state['observation'],state['achieved_goal'])),device=self.device).float())
+                action = self._actions_noise(action)
                 action = action.tolist()
                 # state = {observation: array<float>[25,1],
                 #            achieved_goal: array<float>[3,1],
@@ -212,3 +213,15 @@ class DDPG_HER(object):
         log.info(f'buffer size: {len(self.HER_buffer)}')
         self.total_actor_loss = []
         self.total_cirtic_loss = []
+    
+
+    def _actions_noise(self, action):
+        # add the gaussian
+        action += self.args.noise_eps * self.env_params['action_max'] * torch.randn(*action.shape,device = self.device)
+        action = torch.clamp(action, -self.env_params['action_max'], self.env_params['action_max'])
+        # random actions...
+        random_actions = np.random.uniform(low=-self.env_params['action_max'], high=self.env_params['action_max'], \
+                                            size=self.env_params['action'])
+        # choose if use the random actions
+        action = random_actions if torch.rand(1) < self.args.noise_eps else action
+        return action

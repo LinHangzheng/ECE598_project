@@ -13,7 +13,6 @@ import torch.nn.functional as F
 class Critic(nn.Module):
     def __init__(self, env_params):
         super(Critic, self).__init__()
-
         self.f1 = nn.Linear(env_params['observation'] +env_params['goal'] + env_params['action'] ,256)
         self.f2 = nn.Linear(256,256)
         self.f3 = nn.Linear(256,256)

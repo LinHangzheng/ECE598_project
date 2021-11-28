@@ -7,6 +7,7 @@ import copy
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import logging as log
 
 class DDPG_HER(object):
     def __init__(self, args, env):
@@ -14,7 +15,7 @@ class DDPG_HER(object):
         self.env = env
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+        self.total_actor_loss, self.total_critic_loss =[],[]
         self.env_params = get_env_parameters(self.env)
 
         self._set_net(self.env_params)
@@ -36,8 +37,11 @@ class DDPG_HER(object):
             #update models using HER buffer
             self._update_model()
 
+            if episode_num !=0 and np.mod(episode_num, self.args.log_per_episode) == 0:
+                self._log(episode_num)
+
             #evaluate
-            if np.mod(episode_num, self.args.evaluate_per_episode) == 0:
+            if episode_num !=0 and np.mod(episode_num, self.args.evaluate_per_episode) == 0:
                 success_rate = self._evaluate(episode_num)
 
             #log info
@@ -49,7 +53,8 @@ class DDPG_HER(object):
 
 
     def predict(self, obs, goal):
-        action = self.actor(torch.tensor(np.concatenate((obs,goal)),device=self.device).float()).cpu().numpy().squeeze()
+        with torch.no_grad():
+            action = self.actor(torch.tensor(np.concatenate((obs,goal)),device=self.device).float()).cpu().numpy().squeeze()
         return action
 
 
@@ -60,24 +65,19 @@ class DDPG_HER(object):
     
     def _evaluate(self, episode_num):
         total_success = 0.0
-        total_step = 0.
-        eval_episode_num = self.args.eval_episode_num
         max_episode_step = self.env_params['max_episode_steps']
-        for _ in range(eval_episode_num):
+        for _ in range(self.args.eval_episode_num):
             state = self.env.reset()
             obs = state['observation']
             goal = state['desired_goal']
-            is_success = 0.
             for _ in range(max_episode_step):
-                with torch.no_grad():
-                    act = self.predict(obs,goal)
+                act = self.predict(obs,goal)
                 state_next, _, _, info = self.env.step(act)
                 obs = state_next['observation']
                 goal = state_next['desired_goal']
                 is_success = info['is_success']
             total_success += is_success
-            total_step += 1.
-        success_rate = total_success/total_step
+        success_rate = total_success/self.args.eval_episode_num
         print('Evaluation at episode #{}, eval success rate = {:.3f}'.format(episode_num, success_rate))
 
         #log info
@@ -86,11 +86,7 @@ class DDPG_HER(object):
 
     def _update_target(self):
         self.actor_target.load_state_dict(self.actor.state_dict())
-        for param in self.actor_target.parameters():
-            param.requires_grad = False
         self.critic_target.load_state_dict(self.critic.state_dict())
-        for param in self.critic_target.parameters():
-            param.requires_grad = False
 
     def _set_net(self,env_params):
         # Define the actor
@@ -161,6 +157,7 @@ class DDPG_HER(object):
     
 
     def _update_model(self):
+        
         for epoch in range(self.args.epoch_num):
             actor_loss, critic_loss = 0., 0.
 
@@ -174,14 +171,17 @@ class DDPG_HER(object):
             cur_act = self.actor(states)
             cur_val = self.critic(torch.cat((states, acts),1))
 
-            next_act = self.actor_target(next_states)
-            next_val = self.critic_target(torch.cat((next_states, next_act),1))
+            with torch.no_grad():
+                next_act = self.actor_target(next_states).detach()
+                next_val = self.critic_target(torch.cat((next_states, next_act),1)).detach()
 
-            V_target = rewards + self.args.gamma * next_val
+                V_target = rewards + self.args.gamma * next_val
+                # V_target = torch.clamp(V_target, -200, 0)
 
             actor_loss = -torch.mean(self.critic(torch.cat((states, cur_act),1)))
-            critic_loss = self.criterion(V_target, cur_val)
-            # total_loss = critic_loss + actor_loss
+            critic_loss = self.criterion(V_target.detach(), cur_val)
+            self.total_actor_loss.append(actor_loss.item())
+            self.total_critic_loss.append(critic_loss.item())
 
             
             self.optim_actor.zero_grad()
@@ -195,6 +195,12 @@ class DDPG_HER(object):
             if np.mod(epoch, self.args.target_update_per_epoch) == 0:
                 self._update_target()
 
-            #log info
+        
 
-        return
+    def _log(self,episode_num):
+        #log info
+        mean_actor_loss = np.mean(self.total_actor_loss)
+        mean_critic_loss = np.mean(self.total_critic_loss)
+        log.info(f'epoch: {episode_num}/{self.args.episode} actor loss: {mean_actor_loss} | critic loss: {mean_critic_loss}')
+        self.total_actor_loss = []
+        self.total_cirtic_loss = []

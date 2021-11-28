@@ -142,6 +142,7 @@ class DDPG_HER(object):
 
             # loop to collect the rough rollouts
             while not moved:
+                rollouts = []
                 done = False
                 while not done:
                     action = self.actor(torch.tensor(np.concatenate((state['observation'],state['achieved_goal'])),device=self.device).float())

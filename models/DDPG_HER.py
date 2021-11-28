@@ -15,13 +15,13 @@ class DDPG_HER(object):
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        env_params = get_env_parameters(self.env)
+        self.env_params = get_env_parameters(self.env)
 
-        self._set_net(env_params)
+        self._set_net(self.env_params)
         self._set_criterion()
         self._set_opt()
 
-        self.HER_buffer = ReplayBuffer(args.buffer_size, env_params) 
+        self.HER_buffer = ReplayBuffer(args.buffer_size, self.env_params) 
 
     def learn(self):
         #log info  
@@ -49,7 +49,7 @@ class DDPG_HER(object):
 
 
     def predict(self, obs, goal):
-        action = self.actor(torch.tensor(np.concatenate((obs,goal)),device=self.device).float()).numpy().squeeze()
+        action = self.actor(torch.tensor(np.concatenate((obs,goal)),device=self.device).float()).cpu().numpy().squeeze()
         return action
 
 

@@ -30,7 +30,7 @@ def parse_options(return_parser=False):
                              help='batch size for model update.')
     global_group.add_argument('--T', type=int, default=500, 
                              help='Total time steps for each rollout in the environment.')
-    global_group.add_argument('--buffer-size', type=int, default=50000, 
+    global_group.add_argument('--buffer-size', type=int, default=100000, 
                              help='the size of the replay buffer.')
     global_group.add_argument('--seed', type=int, default =0,
                               help='NumPy random seed.')

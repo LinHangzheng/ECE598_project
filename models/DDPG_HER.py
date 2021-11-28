@@ -157,7 +157,8 @@ class DDPG_HER(object):
     
 
     def _update_model(self):
-        
+        self.actor.train()
+        self.critic.train()
         for epoch in range(self.args.epoch_num):
             actor_loss, critic_loss = 0., 0.
 
@@ -176,20 +177,21 @@ class DDPG_HER(object):
                 next_val = self.critic_target(torch.cat((next_states, next_act),1)).detach()
 
                 V_target = rewards + self.args.gamma * next_val
-                # V_target = torch.clamp(V_target, -200, 0)
+                V_target = torch.clamp(V_target, -50, 0)
 
-            actor_loss = -torch.mean(self.critic(torch.cat((states, cur_act),1)))
+            actor_loss = -torch.mean(self.critic(torch.cat((states, cur_act),1))) 
+            actor_loss += torch.mean(cur_act.pow(2))
             critic_loss = self.criterion(V_target.detach(), cur_val)
             self.total_actor_loss.append(actor_loss.item())
             self.total_critic_loss.append(critic_loss.item())
 
             
             self.optim_actor.zero_grad()
-            actor_loss.backward(retain_graph=True)
+            actor_loss.backward()
+            self.optim_actor.step()
+
             self.optim_critic.zero_grad()
             critic_loss.backward()
-
-            self.optim_actor.step()
             self.optim_critic.step()
           
             if np.mod(epoch, self.args.target_update_per_epoch) == 0:

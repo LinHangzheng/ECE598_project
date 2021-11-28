@@ -135,13 +135,12 @@ class DDPG_HER(object):
 
     def _collect_rollouts(self, rollouts_num):
         for _ in range(rollouts_num):
-            rollouts = []
-            state = self.env.reset()
-            
             moved = False
 
             # loop to collect the rough rollouts
             while not moved:
+                state = self.env.reset()
+                rollouts = []
                 done = False
                 while not done:
                     action = self.actor(torch.tensor(np.concatenate((state['observation'],state['achieved_goal'])),device=self.device).float())

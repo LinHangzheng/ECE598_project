@@ -143,14 +143,15 @@ class DDPG_HER(object):
             rewards = torch.from_numpy(rewards).float().to(self.device)
             next_states = torch.from_numpy(next_states).float().to(self.device)
 
+            cur_act = self.actor(states)
             cur_val = self.critic(torch.cat((states, acts),1))
 
-            next_act = self.actor(next_states)
-            next_val = self.critic(torch.cat((next_states, next_act),1))
+            next_act = self.actor_target(next_states)
+            next_val = self.critic_target(torch.cat((next_states, next_act),1))
 
             V_target = rewards + self.args.gamma * next_val
 
-            actor_loss = -torch.mean(V_target)
+            actor_loss = -torch.mean(self.critic(torch.cat((states, cur_act),1)))
             critic_loss = self.criterion(V_target, cur_val)
             # total_loss = critic_loss + actor_loss
 

@@ -40,7 +40,7 @@ def parse_options(return_parser=False):
                                 help='discount factor for DDPG.')
     global_group.add_argument('--lr', type=float, default=0.001, 
                                 help='learning rate for model update.')
-    global_group.add_argument('--noise_eps', type=float, default=0.3, 
+    global_group.add_argument('--noise_eps', type=float, default=0.05, 
                                 help='learning rate for model update.')
 
     # Parse and run

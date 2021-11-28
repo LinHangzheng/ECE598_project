@@ -224,9 +224,4 @@ class DDPG_HER(object):
         # add the gaussian
         action += self.args.noise_eps * self.env_params['action_max'] * torch.randn(*action.shape,device = self.device)
         action = torch.clamp(action, -self.env_params['action_max'], self.env_params['action_max'])
-        # random actions...
-        random_actions = np.random.uniform(low=-self.env_params['action_max'], high=self.env_params['action_max'], \
-                                            size=self.env_params['action'])
-        # choose if use the random actions
-        action = random_actions if torch.rand(1) < self.args.noise_eps else action
         return action

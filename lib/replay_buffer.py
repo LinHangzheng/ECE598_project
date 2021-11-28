@@ -48,7 +48,7 @@ class ReplayBuffer(object):
 
     def update_idx(self):
         if self.idx == self.size-1:
-            self.buffer_full == True
+            self.buffer_full = True
         self.idx = (self.idx+1)%self.size
     
 

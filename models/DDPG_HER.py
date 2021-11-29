@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import logging as log
+from tqdm import tqdm
 
 class DDPG_HER(object):
     def __init__(self, args, env):
@@ -21,6 +22,7 @@ class DDPG_HER(object):
         self._set_net(self.env_params)
         self._set_criterion()
         self._set_opt()
+        self._set_random_act()
 
         self.HER_buffer = ReplayBuffer(args.buffer_size, self.env_params) 
 
@@ -40,12 +42,14 @@ class DDPG_HER(object):
 
             self._update_target()
 
-            if episode_num !=0 and np.mod(episode_num, self.args.log_per_episode) == 0:
-                self._log(episode_num)
+            self._random_act_decay()
+
+            # if episode_num !=0 and np.mod(episode_num, self.args.log_per_episode) == 0:
+            self._log(episode_num)
 
             #evaluate
-            if episode_num !=0 and np.mod(episode_num, self.args.evaluate_per_episode) == 0:
-                success_rate = self._evaluate(episode_num)
+            # if episode_num !=0 and np.mod(episode_num, self.args.evaluate_per_episode) == 0:
+            success_rate = self._evaluate(episode_num)
 
             #log info
 
@@ -113,34 +117,41 @@ class DDPG_HER(object):
         self.optim_actor = torch.optim.Adam(self.actor.parameters(), lr = self.args.lr)
         self.optim_critic = torch.optim.Adam(self.critic.parameters(), lr = self.args.lr)
 
+    def _set_random_act(self):
+        self.noise_eps = self.args.noise_eps
+        self.random_eps = self.args.random_eps
+        self.random_decay = self.args.random_decay
+
+    def _random_act_decay(self):
+        self.random_eps *= self.random_decay
+        self.noise_eps *= self.random_decay
+
     # The function that recalculates the reward
     # input:
     #   @ rollouts : list<transition>[n,1]
     # output:
     #   @ rollouts: the rollouts that recalculates the rewards
     #   @ new_rollouts: the rollouts that switches the goal
-    def _recal_reward(self,rollouts):
-        new_rollouts = copy.deepcopy(rollouts)
-        for idx in range(len(new_rollouts)):
+    def _recal_reward(self,transition):
+        HER_transition = copy.deepcopy(transition)
+        # for idx in range(len(transition['action'])):
             # all the rewards will be the same as the final reward
             # rollouts[idx][2] = rollouts[-1][2]
             # new_rollouts[idx][2] = 0
             # switch the target 
-            new_rollouts[idx][0]['desired_goal'] = rollouts[-1][3]['achieved_goal']
-            new_rollouts[idx][3]['desired_goal'] = rollouts[-1][3]['achieved_goal']
-            new_rollouts[idx][2]=self.env.compute_reward(new_rollouts[idx][3]['achieved_goal'],new_rollouts[idx][3]['desired_goal'],{})
+        HER_transition['desired_goal'][:,:,:] = np.expand_dims(HER_transition['achieved_goal'][:,-1,:],axis=1).repeat(self.env_params['max_episode_steps'],axis=1)
+        HER_transition['reward'][:,:,0] = self.env.compute_reward(HER_transition['achieved_goal'],HER_transition['desired_goal'],None)
 
-        return rollouts, new_rollouts
+        return HER_transition
 
 
     def _collect_rollouts(self, rollouts_num,episode_num):
         for _ in range(rollouts_num):
             moved = False
-
             # loop to collect the rough rollouts
             # while not moved:
             state = self.env.reset()
-            rollouts = []
+            rollouts = {'obs':[], 'action':[], 'reward':[], 'next_obs':[], 'achieved_goal':[], 'desired_goal':[]}
             done = False
             while not done:
                 action = self.actor(torch.tensor(np.concatenate((state['observation'],state['achieved_goal'])),device=self.device).float())
@@ -153,50 +164,58 @@ class DDPG_HER(object):
                 # done = bool               
                 next_state, reward, done, _ = self.env.step(action)
                 # add the new rollout
-                rollouts.append([state,action,reward,next_state])
+                rollouts['obs'].append(state['observation'])
+                rollouts['action'].append(action)
+                rollouts['reward'].append([reward])
+                rollouts['next_obs'].append(next_state['observation'])
+                rollouts['achieved_goal'].append(next_state['achieved_goal'])
+                rollouts['desired_goal'].append(next_state['desired_goal'])
                 state = next_state
                 # moved = self.env.compute_reward(rollouts[0][0]['achieved_goal'],rollouts[-1][3]['achieved_goal'],{})
 
 
             # recalculate the goal    
-            rollouts, new_rollouts = self._recal_reward(rollouts)
+            # rollouts, new_rollouts = self._recal_reward(rollouts)
             
             # store the rollouts
-            if torch.rand(1) < self.args.fail_rate:
-                self.HER_buffer.insert(rollouts)
-            self.HER_buffer.insert(new_rollouts)
+            self.HER_buffer.insert(rollouts)
+            # self.HER_buffer.insert(new_rollouts)
     
 
     def _update_model(self):
         self.actor.train()
         self.critic.train()
-        for epoch in range(self.args.epoch_num):
+        for epoch in tqdm(range(self.args.epoch_num)):
             actor_loss, critic_loss = 0., 0.
 
-            states, acts, rewards, next_states  = self.HER_buffer.sample_batch(self.args.batch_size)
+            transition = self.HER_buffer.sample_batch(self.args.batch_size)
+            HER_transition = self._recal_reward(transition)
 
+            states = np.concatenate((HER_transition['obs'],HER_transition['desired_goal']),axis=2)
+            next_states = np.concatenate((HER_transition['next_obs'],HER_transition['desired_goal']),axis=2)
             states = torch.from_numpy(states).float().to(self.device)
-            acts = torch.from_numpy(acts).float().to(self.device)
-            rewards = torch.from_numpy(rewards).float().to(self.device)
+            acts = torch.from_numpy(HER_transition['action']).float().to(self.device)
+            rewards = torch.from_numpy(HER_transition['reward']).float().to(self.device)
             next_states = torch.from_numpy(next_states).float().to(self.device)
 
-            cur_act = self.actor(states)
-            cur_val = self.critic(torch.cat((states, acts),1))
+            for path_idx in range(self.args.batch_size):
+                cur_act = self.actor(states[path_idx])
+                cur_val = self.critic(torch.cat((states[path_idx], acts[path_idx]),1))
 
-            with torch.no_grad():
-                next_act = self.actor_target(next_states).detach()
-                next_val = self.critic_target(torch.cat((next_states, next_act),1)).detach()
+                with torch.no_grad():
+                    next_act = self.actor_target(next_states[path_idx]).detach()
+                    next_val = self.critic_target(torch.cat((next_states[path_idx], next_act),1)).detach()
 
-                V_target = rewards + self.args.gamma * next_val
-                V_target = torch.clamp(V_target, -50, 0)
+                    V_target = rewards[path_idx] + self.args.gamma * next_val
+                    V_target = torch.clamp(V_target, -50, 0)
 
-            actor_loss = -torch.mean(self.critic(torch.cat((states, cur_act),1))) 
-            actor_loss += torch.mean(cur_act.pow(2))
-            critic_loss = self.criterion(V_target.detach(), cur_val)
-            self.total_actor_loss.append(actor_loss.item())
-            self.total_critic_loss.append(critic_loss.item())
+                actor_loss += -torch.mean(self.critic(torch.cat((states[path_idx], cur_act),1))) 
+                actor_loss += torch.mean(cur_act.pow(2))
+                critic_loss += self.criterion(V_target.detach(), cur_val)
+                self.total_actor_loss.append(actor_loss.item())
+                self.total_critic_loss.append(critic_loss.item())
 
-            
+                
             self.optim_actor.zero_grad()
             actor_loss.backward()
             self.optim_actor.step()
@@ -204,7 +223,7 @@ class DDPG_HER(object):
             self.optim_critic.zero_grad()
             critic_loss.backward()
             self.optim_critic.step()
-          
+        
 
 
         
@@ -221,10 +240,12 @@ class DDPG_HER(object):
     
 
     def _actions_noise(self, action, epoch):
-        epoch_rate = 1 - epoch / self.args.episode
-        self.noise_eps = self.args.noise_epos_max * epoch_rate
-        self.noise_eps = np.clip(self.noise_eps, self.args.noise_epos_min,self.args.noise_epos_max)
         # add the gaussian
         action += self.noise_eps * self.env_params['action_max'] * torch.randn(*action.shape,device = self.device)
         action = torch.clamp(action, -self.env_params['action_max'], self.env_params['action_max'])
+        # random actions...
+        random_actions = np.random.uniform(low=-self.env_params['action_max'], high=self.env_params['action_max'], \
+                                            size=self.env_params['action'])
+        # choose if use the random actions
+        action = random_actions if torch.rand(1) < self.random_eps else action
         return action

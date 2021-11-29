@@ -26,7 +26,7 @@ def parse_options(return_parser=False):
                              help='Number of epochs for model update.')
     global_group.add_argument('--target_update_per_epoch', type=int, default=5, 
                              help='number of epochs between two target updates.')
-    global_group.add_argument('--batch_size', type=int, default=1024, 
+    global_group.add_argument('--batch_size', type=int, default=128, 
                              help='batch size for model update.')
     # global_group.add_argument('--T', type=int, default=500, 
     #                          help='Total time steps for each rollout in the environment.')
@@ -40,10 +40,12 @@ def parse_options(return_parser=False):
                                 help='discount factor for DDPG.')
     global_group.add_argument('--lr', type=float, default=0.001, 
                                 help='learning rate for model update.')
-    global_group.add_argument('--noise_epos_min', type=float, default=0.01, 
-                                help='learning rate for model update.')
-    global_group.add_argument('--noise_epos_max', type=float, default=0.3, 
-                                help='learning rate for model update.')
+    global_group.add_argument('--noise_eps', type=float, default=0.2, 
+                                help='noise amplitude for action.')
+    global_group.add_argument('--random_eps', type=float, default=0.3, 
+                                help='epsilon for random action.')
+    global_group.add_argument('--random_decay', type=float, default=0.95, 
+                                help='decay rate for random_eps and random_decay.')
 
     # Parse and run
     if return_parser:

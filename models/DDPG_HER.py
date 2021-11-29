@@ -50,14 +50,14 @@ class DDPG_HER(object):
 
             self._update_target()
 
-            self._random_act_decay()
+            # self._random_act_decay()
 
             # if episode_num !=0 and np.mod(episode_num, self.args.log_per_episode) == 0:
             self._log(episode_num)
 
             #evaluate
-            # if episode_num !=0 and np.mod(episode_num, self.args.evaluate_per_episode) == 0:
-            success_rate = self._evaluate(episode_num)
+            if episode_num !=0 and np.mod(episode_num, self.args.evaluate_per_episode) == 0:
+                success_rate = self._evaluate(episode_num)
 
             #log info
 
@@ -80,7 +80,7 @@ class DDPG_HER(object):
     def _evaluate(self, episode_num):
         total_success = 0.0
         max_episode_step = self.env_params['max_episode_steps']
-        for _ in range(self.args.eval_episode_num):
+        for i in range(self.args.eval_episode_num):
             state = self.env.reset()
             obs = state['observation']
             goal = state['desired_goal']
@@ -99,6 +99,8 @@ class DDPG_HER(object):
                 obs = state_next['observation']
                 goal = state_next['desired_goal']
                 is_success = info['is_success']
+                if i ==0:
+                    self.env.render()
             total_success += is_success
         success_rate = total_success/self.args.eval_episode_num
         log.info(f'Evaluation at episode #{episode_num}, eval success rate = {success_rate}')
@@ -157,7 +159,6 @@ class DDPG_HER(object):
             # switch the target 
         HER_transition['desired_goal'][:,:,:] = np.expand_dims(HER_transition['next_achieved_goal'][:,-1,:],axis=1).repeat(self.env_params['max_episode_steps'],axis=1)
         HER_transition['reward'][:,:,0] = self.env.compute_reward(HER_transition['next_achieved_goal'],HER_transition['desired_goal'],None)
-
         return HER_transition
 
 
@@ -166,29 +167,36 @@ class DDPG_HER(object):
             moved = False
             # loop to collect the rough rollouts
             # while not moved:
-            state = self.env.reset()
-            rollouts = {'obs':[], 'action':[], 'reward':[], 'next_obs':[], 'achieved_goal':[], 'desired_goal':[], 'next_achieved_goal':[]}
-            done = False
-            while not done:
-                action = self.actor(torch.tensor(np.concatenate((state['observation'],state['achieved_goal'])),device=self.device).float())
-                action = self._actions_noise(action,episode_num)
-                action = action.tolist()
-                # state = {observation: array<float>[25,1],
-                #            achieved_goal: array<float>[3,1],
-                #            desired_goal: array<float>[3,1]}
-                # reward = float, -1 or 0
-                # done = bool               
-                next_state, reward, done, _ = self.env.step(action)
-                # add the new rollout
-                rollouts['obs'].append(state['observation'])
-                rollouts['action'].append(action)
-                rollouts['reward'].append([reward])
-                rollouts['next_obs'].append(next_state['observation'])
-                rollouts['achieved_goal'].append(state['achieved_goal'])
-                rollouts['next_achieved_goal'].append(next_state['achieved_goal'])
-                rollouts['desired_goal'].append(next_state['desired_goal'])
-                state = next_state
-                # moved = self.env.compute_reward(rollouts[0][0]['achieved_goal'],rollouts[-1][3]['achieved_goal'],{})
+            
+            while moved == False:
+                state = self.env.reset()
+                rollouts = {'obs':[], 'action':[], 'reward':[], 'next_obs':[], 'achieved_goal':[], 'desired_goal':[], 'next_achieved_goal':[]}
+                done = False
+                while not done:
+                    action = self.actor(torch.tensor(np.concatenate((state['observation'],state['achieved_goal'])),device=self.device).float())
+                    action = self._actions_noise(action,episode_num)
+                    action = action.tolist()
+                    # state = {observation: array<float>[25,1],
+                    #            achieved_goal: array<float>[3,1],
+                    #            desired_goal: array<float>[3,1]}
+                    # reward = float, -1 or 0
+                    # done = bool               
+                    next_state, reward, done, _ = self.env.step(action)
+                    # add the new rollout
+                    rollouts['obs'].append(state['observation'])
+                    rollouts['action'].append(action)
+                    rollouts['reward'].append([reward])
+                    rollouts['next_obs'].append(next_state['observation'])
+                    rollouts['achieved_goal'].append(state['achieved_goal'])
+                    rollouts['next_achieved_goal'].append(next_state['achieved_goal'])
+                    rollouts['desired_goal'].append(next_state['desired_goal'])
+                    state = next_state
+                    
+                moved = self.env.compute_reward(rollouts['achieved_goal'][0],rollouts['achieved_goal'][-1],{})
+                if (np.abs(rollouts['achieved_goal'][0][2]-rollouts['next_achieved_goal'][-1][2])>0.1):
+                    moved = False
+            # print (rollouts['achieved_goal'][0])
+            print("collect!!!")
 
 
             # recalculate the goal    
@@ -276,7 +284,7 @@ class DDPG_HER(object):
                 V_target = torch.clamp(V_target, -50, 0)
 
             actor_loss = -torch.mean(self.critic(torch.cat((states, cur_act),1))) 
-            actor_loss += torch.mean(cur_act.pow(2))
+            actor_loss += 10*torch.mean(cur_act.pow(2))
             critic_loss += self.criterion(V_target.detach(), cur_val)
             self.total_actor_loss.append(actor_loss.item())
             self.total_critic_loss.append(critic_loss.item())

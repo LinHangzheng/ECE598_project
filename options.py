@@ -8,7 +8,7 @@ def parse_options(return_parser=False):
     
     # Global arguments
     global_group = parser.add_argument_group('global')
-    global_group.add_argument('--environment_name', type=str, default='FetchSlide-v1',
+    global_group.add_argument('--environment_name', type=str, default='FetchPush-v1',
                               help='Experiment name.')
     global_group.add_argument('--output_path', type=str, default='_result/',
                               help='output path.')
@@ -16,11 +16,11 @@ def parse_options(return_parser=False):
                              help='model to be used.')
     global_group.add_argument('--episode', type=int, default=10000, 
                              help='Number of episodes to run the training.')
-    global_group.add_argument('--evaluate_per_episode', type=int, default=200, 
+    global_group.add_argument('--evaluate_per_episode', type=int, default=5, 
                              help='number of episodes between two evaluation.')
     global_group.add_argument('--log_per_episode', type=int, default=50, 
                              help='number of episodes between two loss log.')
-    global_group.add_argument('--eval_episode_num', type=int, default=100, 
+    global_group.add_argument('--eval_episode_num', type=int, default=10, 
                              help='number of episodes used for each evaluation.')
     global_group.add_argument('--epoch_num', type=int, default=50, 
                              help='Number of epochs for model update.')
@@ -40,7 +40,7 @@ def parse_options(return_parser=False):
                                 help='discount factor for DDPG.')
     global_group.add_argument('--lr', type=float, default=0.001, 
                                 help='learning rate for model update.')
-    global_group.add_argument('--noise_eps', type=float, default=0.2, 
+    global_group.add_argument('--noise_eps', type=float, default=0.3, 
                                 help='noise amplitude for action.')
     global_group.add_argument('--random_eps', type=float, default=0.3, 
                                 help='epsilon for random action.')

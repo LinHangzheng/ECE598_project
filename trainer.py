@@ -70,12 +70,15 @@ class Trainer(object):
     def render(self):
         obs = self.env.reset()
         for i in range(1000):
-            action = self.model.predict(obs)
+            action = self.model.predict(obs['observation'], obs['desired_goal'])
+            print(action)
             obs, reward, done, info = self.env.step(action.detach().cpu().numpy().squeeze())
+            print(reward)
             self.env.render()
             if done:
                 obs = self.env.reset()
         self.env.close()
+    
     
     
     def train(self):
@@ -101,7 +104,7 @@ class Trainer(object):
             obs = self.env.reset()
             eps_reward = 0
             for i in range(1000):
-                action = self.model.predict(obs)
+                action = self.model.predict(obs['observation'], obs['desired_goal'])
                 obs, reward, done, info = self.env.step(action.detach().cpu().numpy().squeeze())
                 eps_reward += reward               
                 if done:

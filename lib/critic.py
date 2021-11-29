@@ -14,6 +14,7 @@ class Critic(nn.Module):
     def __init__(self, env_params):
         super(Critic, self).__init__()
 
+        # self.bn = nn.BatchNorm1d(env_params['observation'] +env_params['goal'] + env_params['action'] )
         self.f1 = nn.Linear(env_params['observation'] +env_params['goal'] + env_params['action'] ,256)
         self.f2 = nn.Linear(256,256)
         self.f3 = nn.Linear(256,256)
@@ -21,6 +22,8 @@ class Critic(nn.Module):
 
 
     def forward(self, x):
+        # if len(list(x.shape)) != 1:
+        #     x = self.bn(x)
         x = F.relu(self.f1(x))
         x = F.relu(self.f2(x))
         x = F.relu(self.f3(x))

@@ -15,13 +15,6 @@ if __name__ == "__main__":
     trainer = Trainer(args, args_str)
     trainer.train()
     trainer.save_model()
-    trainer.render()
+    # trainer.render()
     trainer.test()
     
-
-    # If we want, we can substitute a goal here and re-compute
-    # the reward. For instance, we can just pretend that the desired
-    # goal was what we achieved all along.
-    # substitute_goal = obs['achieved_goal'].copy()
-    # substitute_reward = env.compute_reward( obs['achieved_goal'], substitute_goal, info)
-    # print('reward is {}, substitute_reward is {}'.format(reward, substitute_reward))

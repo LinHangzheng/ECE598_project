@@ -13,14 +13,18 @@ class Actor(nn.Module):
     def __init__(self, env_params):
         super(Actor, self).__init__()
 
+        # self.bn = nn.BatchNorm1d(env_params['observation'] +env_params['goal'])
         self.f1 = nn.Linear(env_params['observation'] +env_params['goal'],256)
         self.f2 = nn.Linear(256,256)
         self.f3 = nn.Linear(256,256)
         self.f4 = nn.Linear(256,env_params['action'] )
         self.action_max = env_params['action_max']
+        
     def forward(self, x):
+        # if len(list(x.shape)) != 1:
+        #     x = self.bn(x)
         x = F.relu(self.f1(x))
         x = F.relu(self.f2(x))
         x = F.relu(self.f3(x))
-        actions = self.action_max*torch.sigmoid(self.f4(x))
+        actions = self.action_max*torch.tanh(self.f4(x))
         return actions

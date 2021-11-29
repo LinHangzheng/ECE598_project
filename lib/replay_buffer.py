@@ -6,12 +6,16 @@ import random
 class ReplayBuffer(object):
     def __init__(self, size, env_params):
         self.size = size
-        self.observation = np.empty((size,env_params['observation']))
-        self.goal = np.empty((size,env_params['goal']))
-        self.act = np.empty((size,env_params['action']))
-        self.next_observation = np.empty((size,env_params['observation']))
-        # self.next_goal = np.empty((size,env_params['goal']))
-        self.reward = np.empty((size,1))
+        self.buffer = {
+            'obs': np.empty((size, env_params['max_episode_steps'], env_params['observation'])),
+            'action': np.empty((size, env_params['max_episode_steps'], env_params['action'])),
+            'next_obs': np.empty((size, env_params['max_episode_steps'], env_params['observation'])),
+            'reward': np.empty((size, env_params['max_episode_steps'], 1)),
+            'achieved_goal': np.empty((size, env_params['max_episode_steps'], env_params['goal'])),
+            'desired_goal': np.empty((size, env_params['max_episode_steps'], env_params['goal'])),
+            'next_achieved_goal': np.empty((size, env_params['max_episode_steps'], env_params['goal']))
+        }
+        
         self.idx = 0
         self.buffer_full = False
 
@@ -19,21 +23,15 @@ class ReplayBuffer(object):
     # insert new data input the replay buffer
     # @ rollouts : list<trainsition> nx1  
     def insert(self, rollouts):
-        for rollout in rollouts:
-            obs = rollout[0]['observation']
-            next_obs = rollout[3]['observation']
-            goal = rollout[0]['desired_goal']
-
-            # state = np.concatenate((obs,goal))
-            # next_state = np.concatenate((next_obs,goal))
-
-            # self.state[self.idx] = state
-            self.observation[self.idx] = obs
-            self.act[self.idx] = rollout[1]
-            self.reward[self.idx] = rollout[2]
-            self.goal[self.idx] = goal
-            self.next_observation[self.idx] = next_obs 
-            self.update_idx()
+        self.buffer['obs'][self.idx] = rollouts['obs']
+        self.buffer['action'][self.idx] = rollouts['action']
+        self.buffer['reward'][self.idx] = rollouts['reward']
+        self.buffer['next_obs'][self.idx] = rollouts['next_obs'] 
+        self.buffer['achieved_goal'][self.idx] = rollouts['achieved_goal']
+        self.buffer['desired_goal'][self.idx] = rollouts['desired_goal']
+        self.buffer['next_achieved_goal'][self.idx] = rollouts['next_achieved_goal']
+ 
+        self.update_idx()
     
     
     # sample a batch of data
@@ -43,12 +41,17 @@ class ReplayBuffer(object):
             samples_idx = np.random.choice(self.size,batch_size,replace=False)
         else:
             samples_idx = np.random.choice(self.idx,batch_size,replace=True)
-        obss = self.observation[samples_idx]
-        acts = self.act[samples_idx]
-        rewards = self.reward[samples_idx]
-        next_obss = self.next_observation[samples_idx]
-        goals = self.goal[samples_idx]
-        return obss, acts, rewards, next_obss, goals
+
+        transition = {
+            'obs':self.buffer['obs'][samples_idx],
+            'action':self.buffer['action'][samples_idx],
+            'reward':self.buffer['reward'][samples_idx],
+            'next_obs':self.buffer['next_obs'][samples_idx],
+            'achieved_goal':self.buffer['achieved_goal'][samples_idx],
+            'desired_goal':self.buffer['desired_goal'][samples_idx],
+            'next_achieved_goal':self.buffer['next_achieved_goal'][samples_idx]
+        }
+        return transition
     
 
     def update_idx(self):

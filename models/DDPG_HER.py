@@ -42,7 +42,7 @@ class DDPG_HER(object):
 
             self._update_target()
 
-            self._random_act_decay()
+            # self._random_act_decay()
 
             # if episode_num !=0 and np.mod(episode_num, self.args.log_per_episode) == 0:
             self._log(episode_num)
@@ -141,7 +141,7 @@ class DDPG_HER(object):
             # switch the target 
         HER_transition['desired_goal'][:,:,:] = np.expand_dims(HER_transition['achieved_goal'][:,-1,:],axis=1).repeat(self.env_params['max_episode_steps'],axis=1)
         HER_transition['reward'][:,:,0] = self.env.compute_reward(HER_transition['achieved_goal'],HER_transition['desired_goal'],None)
-
+        
         return HER_transition
 
 
@@ -212,8 +212,8 @@ class DDPG_HER(object):
                 actor_loss += -torch.mean(self.critic(torch.cat((states[path_idx], cur_act),1))) 
                 actor_loss += torch.mean(cur_act.pow(2))
                 critic_loss += self.criterion(V_target.detach(), cur_val)
-                self.total_actor_loss.append(actor_loss.item())
-                self.total_critic_loss.append(critic_loss.item())
+            self.total_actor_loss.append(actor_loss.item())
+            self.total_critic_loss.append(critic_loss.item())
 
                 
             self.optim_actor.zero_grad()

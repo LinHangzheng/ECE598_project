@@ -14,7 +14,7 @@ def parse_options(return_parser=False):
                               help='output path.')
     global_group.add_argument('--model', type=str, default='DDPG_HER', choices=['PPO', 'DEFAULT_HER','DDPG_HER'], 
                              help='model to be used.')
-    global_group.add_argument('--episode', type=int, default=10000, 
+    global_group.add_argument('--episode', type=int, default=1000, 
                              help='Number of episodes to run the training.')
     global_group.add_argument('--evaluate_per_episode', type=int, default=200, 
                              help='number of episodes between two evaluation.')
@@ -30,7 +30,7 @@ def parse_options(return_parser=False):
                              help='batch size for model update.')
     # global_group.add_argument('--T', type=int, default=500, 
     #                          help='Total time steps for each rollout in the environment.')
-    global_group.add_argument('--buffer_size', type=int, default=1000000, 
+    global_group.add_argument('--buffer_size', type=int, default=1000, 
                              help='the size of the replay buffer.')
     global_group.add_argument('--seed', type=int, default =0,
                               help='NumPy random seed.')

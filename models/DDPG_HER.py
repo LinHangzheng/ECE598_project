@@ -1,4 +1,4 @@
-from stable_baselines3.common import buffers
+from stable_baselines3.common import buffers, noise
 from lib import *
 from collections import  namedtuple
 import os
@@ -33,7 +33,7 @@ class DDPG_HER(object):
 
             #collect rollouts and store in HER buffer
 
-            self._collect_rollouts(4)
+            self._collect_rollouts(4,episode_num)
 
             #update models using HER buffer
             self._update_model()
@@ -133,29 +133,29 @@ class DDPG_HER(object):
         return rollouts, new_rollouts
 
 
-    def _collect_rollouts(self, rollouts_num):
+    def _collect_rollouts(self, rollouts_num,episode_num):
         for _ in range(rollouts_num):
             moved = False
 
             # loop to collect the rough rollouts
-            while not moved:
-                state = self.env.reset()
-                rollouts = []
-                done = False
-                while not done:
-                    action = self.actor(torch.tensor(np.concatenate((state['observation'],state['achieved_goal'])),device=self.device).float())
-                    action = self._actions_noise(action)
-                    action = action.tolist()
-                    # state = {observation: array<float>[25,1],
-                    #            achieved_goal: array<float>[3,1],
-                    #            desired_goal: array<float>[3,1]}
-                    # reward = float, -1 or 0
-                    # done = bool               
-                    next_state, reward, done, _ = self.env.step(action)
-                    # add the new rollout
-                    rollouts.append([state,action,reward,next_state])
-                    state = next_state
-                moved = self.env.compute_reward(rollouts[0][0]['achieved_goal'],rollouts[-1][3]['achieved_goal'],{})
+            # while not moved:
+            state = self.env.reset()
+            rollouts = []
+            done = False
+            while not done:
+                action = self.actor(torch.tensor(np.concatenate((state['observation'],state['achieved_goal'])),device=self.device).float())
+                action = self._actions_noise(action,episode_num)
+                action = action.tolist()
+                # state = {observation: array<float>[25,1],
+                #            achieved_goal: array<float>[3,1],
+                #            desired_goal: array<float>[3,1]}
+                # reward = float, -1 or 0
+                # done = bool               
+                next_state, reward, done, _ = self.env.step(action)
+                # add the new rollout
+                rollouts.append([state,action,reward,next_state])
+                state = next_state
+                # moved = self.env.compute_reward(rollouts[0][0]['achieved_goal'],rollouts[-1][3]['achieved_goal'],{})
 
 
             # recalculate the goal    
@@ -215,13 +215,16 @@ class DDPG_HER(object):
         mean_critic_loss = np.mean(self.total_critic_loss)
         
         log.info(f'epoch: {episode_num}/{self.args.episode} actor loss: {mean_actor_loss} | critic loss: {mean_critic_loss}')
-        log.info(f'buffer size: {len(self.HER_buffer)}')
+        log.info(f'buffer size: {len(self.HER_buffer)} noise epsilon: {self.noise_eps}')
         self.total_actor_loss = []
         self.total_cirtic_loss = []
     
 
-    def _actions_noise(self, action):
+    def _actions_noise(self, action, epoch):
+        epoch_rate = 1 - epoch / self.args.episode
+        self.noise_eps = self.args.noise_epos_max * epoch_rate
+        self.noise_eps = np.clip(self.noise_eps, self.args.noise_epos_min,self.args.noise_epos_max)
         # add the gaussian
-        action += self.args.noise_eps * self.env_params['action_max'] * torch.randn(*action.shape,device = self.device)
+        action += self.noise_eps * self.env_params['action_max'] * torch.randn(*action.shape,device = self.device)
         action = torch.clamp(action, -self.env_params['action_max'], self.env_params['action_max'])
         return action

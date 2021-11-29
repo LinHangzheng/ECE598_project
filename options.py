@@ -8,7 +8,7 @@ def parse_options(return_parser=False):
     
     # Global arguments
     global_group = parser.add_argument_group('global')
-    global_group.add_argument('--environment_name', type=str, default='FetchSlide-v1',
+    global_group.add_argument('--environment_name', type=str, default='FetchReach-v1',
                               help='Experiment name.')
     global_group.add_argument('--output_path', type=str, default='_result/',
                               help='output path.')
@@ -40,7 +40,9 @@ def parse_options(return_parser=False):
                                 help='discount factor for DDPG.')
     global_group.add_argument('--lr', type=float, default=0.001, 
                                 help='learning rate for model update.')
-    global_group.add_argument('--noise_eps', type=float, default=0.05, 
+    global_group.add_argument('--noise_epos_min', type=float, default=0.01, 
+                                help='learning rate for model update.')
+    global_group.add_argument('--noise_epos_max', type=float, default=0.3, 
                                 help='learning rate for model update.')
 
     # Parse and run
